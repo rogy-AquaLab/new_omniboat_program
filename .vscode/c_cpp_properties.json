@@ -8,8 +8,8 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "C:/Users/yoshi/OneDrive/ドキュメント/PlatformIO/Projects/mini boat/include",
-                "C:/Users/yoshi/OneDrive/ドキュメント/PlatformIO/Projects/mini boat/src",
+                "C:/Users/yoshi/OneDrive/ドキュメント/PlatformIO/Projects/new_omniboat_program/include",
+                "C:/Users/yoshi/OneDrive/ドキュメント/PlatformIO/Projects/new_omniboat_program/src",
                 "C:/Users/yoshi/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                 "C:/Users/yoshi/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                 "C:/Users/yoshi/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",
@@ -244,8 +244,8 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "C:/Users/yoshi/OneDrive/ドキュメント/PlatformIO/Projects/mini boat/include",
-                    "C:/Users/yoshi/OneDrive/ドキュメント/PlatformIO/Projects/mini boat/src",
+                    "C:/Users/yoshi/OneDrive/ドキュメント/PlatformIO/Projects/new_omniboat_program/include",
+                    "C:/Users/yoshi/OneDrive/ドキュメント/PlatformIO/Projects/new_omniboat_program/src",
                     "C:/Users/yoshi/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                     "C:/Users/yoshi/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                     "C:/Users/yoshi/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",
