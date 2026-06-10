@@ -16,7 +16,7 @@ const int M2_IN2 = 16;
 
 // ==== 電圧監視ピン ====
 const int V_ESP = 33;
-const int V_Moter = 32;
+const int V_Motor = 32;
 
 // ==== LEDピン ====
 const int LED_Program = 26;
@@ -177,7 +177,7 @@ void setup() {
   Serial.begin(9600);
 
   pinMode(V_ESP, INPUT);
-  pinMode(V_Moter, INPUT);
+  pinMode(V_Motor, INPUT);
   pinMode(LED_Program, OUTPUT);
   pinMode(LED_Wifi, OUTPUT);
 
