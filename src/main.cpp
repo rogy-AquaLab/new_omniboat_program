@@ -2,8 +2,6 @@
 #include <WebServer.h>
 #include <WiFi.h>
 
-WebServer server(80);
-
 // ==== WiFi設定 ====
 const char *ssid = "ESP32_RC";
 const char *password = "12345678";
@@ -30,6 +28,7 @@ const int M1_CH2 = 1;
 const int M2_CH1 = 2;
 const int M2_CH2 = 3;
 
+// コントローラからの各種命令
 const int ORDER_STOP = 0;
 const int ORDER_MOVE_FORWARD = 1;
 const int ORDER_MOVE_BACKWARD = 2;
@@ -38,17 +37,20 @@ const int ORDER_MOVE_TURN_R = 4;
 const int ORDER_MOVE_SPIN_L = 5;
 const int ORDER_MOVE_SPIN_R = 6;
 
-int order = ORDER_STOP;
+// ==== 加速設定 ====
+const int maxSpeed = 255;
+const int turnSpeed = 0;
+const int accelStep = 5;
+const int accelInterval = 5;
 
-int m1_current = 0;
-int m2_current = 0;
+// ==== 状態変数 (プログラム内で更新されていく変数) ====
+WebServer server(80);         // UIを表示するためのWebサーバーを管理するのに必要
+int order = ORDER_STOP;       // コントローラからの直近の命令
+int m1_current = 0;           // モータ1の現在の出力値
+int m2_current = 0;           // モータ2の現在の出力値
+unsigned long lastUpdate = 0; // 最終更新時刻 [ms]
 
 void updateMotor() {
-  // ==== 加速設定 ====
-  const int maxSpeed = 255;
-  const int turnSpeed = 0;
-  const int accelStep = 5;
-
   int m1_target;
   int m2_target;
 
@@ -84,7 +86,7 @@ void updateMotor() {
     break;
   }
 
-  // 現在の値(`current`)を目標値(`target`)に近づけるように台形加速を行う。
+  // 現在の出力値(`current`)を目標値(`target`)に近づけるように台形加速を行う。
   // `target`と`current`の差が`accelStep`より大きい => current = current +/- accelStep
   // `target`と`current`の差が`accelStep`より小さい => current = target
   //
@@ -118,7 +120,6 @@ void updateMotor() {
 
 // ===== Web UI =====
 void handleRoot() {
-
   digitalWrite(LED_Wifi, HIGH);
   String html = "<!DOCTYPE html><html><head>";
   html += "<meta charset='UTF-8'>";
@@ -185,7 +186,6 @@ void onSpinR() {
 }
 
 void setupRoutes() {
-
   server.on("/", handleRoot);
 
   server.on("/forward", onForward);
@@ -198,7 +198,6 @@ void setupRoutes() {
 }
 
 void setup() {
-
   Serial.begin(9600);
 
   pinMode(V_ESP, INPUT);
@@ -222,9 +221,6 @@ void setup() {
   setupRoutes();
   server.begin();
 }
-
-const int accelInterval = 5;
-unsigned long lastUpdate = 0;
 
 void loop() {
   server.handleClient();
