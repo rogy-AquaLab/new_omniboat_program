@@ -1,12 +1,12 @@
 #include <Arduino.h>
-#include <WiFi.h>
 #include <WebServer.h>
+#include <WiFi.h>
 
 WebServer server(80);
 
 // ==== WiFi設定 ====
-const char* ssid = "ESP32_RC";
-const char* password = "12345678";
+const char *ssid = "ESP32_RC";
+const char *password = "12345678";
 
 // ==== モーターピン ====
 const int M1_IN1 = 19;
@@ -46,27 +46,35 @@ unsigned long lastUpdate = 0;
 // ===== 台形加速処理 =====
 void updateMotor() {
 
-  if (millis() - lastUpdate < accelInterval) return;
+  if (millis() - lastUpdate < accelInterval) {
+    return;
+  }
   lastUpdate = millis();
 
   // M1
   if (m1_current < m1_target) {
     m1_current += accelStep;
-    if (m1_current > m1_target) m1_current = m1_target;
-  }
-  else if (m1_current > m1_target) {
+    if (m1_current > m1_target) {
+      m1_current = m1_target;
+    }
+  } else if (m1_current > m1_target) {
     m1_current -= accelStep;
-    if (m1_current < m1_target) m1_current = m1_target;
+    if (m1_current < m1_target) {
+      m1_current = m1_target;
+    }
   }
 
   // M2
   if (m2_current < m2_target) {
     m2_current += accelStep;
-    if (m2_current > m2_target) m2_current = m2_target;
-  }
-  else if (m2_current > m2_target) {
+    if (m2_current > m2_target) {
+      m2_current = m2_target;
+    }
+  } else if (m2_current > m2_target) {
     m2_current -= accelStep;
-    if (m2_current < m2_target) m2_current = m2_target;
+    if (m2_current < m2_target) {
+      m2_current = m2_target;
+    }
   }
 
   int m1_pwm = constrain(abs(m1_current), 0, 255);
@@ -163,13 +171,34 @@ void setupRoutes() {
 
   server.on("/", handleRoot);
 
-  server.on("/forward", [](){ forward(); handleRoot(); });
-  server.on("/back", [](){ backward(); handleRoot(); });
-  server.on("/left", [](){ leftTurn(); handleRoot(); });
-  server.on("/right", [](){ rightTurn(); handleRoot(); });
-  server.on("/spinL", [](){ spinLeft(); handleRoot(); });
-  server.on("/spinR", [](){ spinRight(); handleRoot(); });
-  server.on("/stop", [](){ stopAll(); handleRoot(); });
+  server.on("/forward", []() {
+    forward();
+    handleRoot();
+  });
+  server.on("/back", []() {
+    backward();
+    handleRoot();
+  });
+  server.on("/left", []() {
+    leftTurn();
+    handleRoot();
+  });
+  server.on("/right", []() {
+    rightTurn();
+    handleRoot();
+  });
+  server.on("/spinL", []() {
+    spinLeft();
+    handleRoot();
+  });
+  server.on("/spinR", []() {
+    spinRight();
+    handleRoot();
+  });
+  server.on("/stop", []() {
+    stopAll();
+    handleRoot();
+  });
 }
 
 void setup() {
