@@ -2,8 +2,6 @@
 #include <WebServer.h>
 #include <WiFi.h>
 
-WebServer server(80);
-
 // ==== WiFi設定 ====
 const char *ssid = "ESP32_RC";
 const char *password = "12345678";
@@ -30,52 +28,74 @@ const int M1_CH2 = 1;
 const int M2_CH1 = 2;
 const int M2_CH2 = 3;
 
+// コントローラからの各種命令
+const int ORDER_STOP = 0;
+const int ORDER_MOVE_FORWARD = 1;
+const int ORDER_MOVE_BACKWARD = 2;
+const int ORDER_MOVE_TURN_L = 3;
+const int ORDER_MOVE_TURN_R = 4;
+const int ORDER_MOVE_SPIN_L = 5;
+const int ORDER_MOVE_SPIN_R = 6;
+
 // ==== 加速設定 ====
 const int maxSpeed = 255;
 const int turnSpeed = 0;
 const int accelStep = 5;
 const int accelInterval = 5;
 
-int m1_target = 0;
-int m2_target = 0;
-int m1_current = 0;
-int m2_current = 0;
+// ==== 状態変数 (プログラム内で更新されていく変数) ====
+WebServer server(80);         // UIを表示するためのWebサーバーを管理するのに必要
+int order = ORDER_STOP;       // コントローラからの直近の命令
+int m1_current = 0;           // モータ1の現在の出力値
+int m2_current = 0;           // モータ2の現在の出力値
+unsigned long lastUpdate = 0; // 最終更新時刻 [ms]
 
-unsigned long lastUpdate = 0;
-
-// ===== 台形加速処理 =====
 void updateMotor() {
+  int m1_target;
+  int m2_target;
 
-  if (millis() - lastUpdate < accelInterval) {
-    return;
+  // コントローラからの命令(`order`)をもとに目標値(`target`)を設定
+  switch (order) {
+  case ORDER_STOP:
+    m1_target = 0;
+    m2_target = 0;
+    break;
+  case ORDER_MOVE_FORWARD:
+    m1_target = maxSpeed;
+    m2_target = maxSpeed;
+    break;
+  case ORDER_MOVE_BACKWARD:
+    m1_target = -maxSpeed;
+    m2_target = -maxSpeed;
+    break;
+  case ORDER_MOVE_TURN_L:
+    m1_target = turnSpeed;
+    m2_target = maxSpeed;
+    break;
+  case ORDER_MOVE_TURN_R:
+    m1_target = maxSpeed;
+    m2_target = turnSpeed;
+    break;
+  case ORDER_MOVE_SPIN_L:
+    m1_target = -maxSpeed;
+    m2_target = maxSpeed;
+    break;
+  case ORDER_MOVE_SPIN_R:
+    m1_target = maxSpeed;
+    m2_target = -maxSpeed;
+    break;
   }
-  lastUpdate = millis();
 
-  // M1
-  if (m1_current < m1_target) {
-    m1_current += accelStep;
-    if (m1_current > m1_target) {
-      m1_current = m1_target;
-    }
-  } else if (m1_current > m1_target) {
-    m1_current -= accelStep;
-    if (m1_current < m1_target) {
-      m1_current = m1_target;
-    }
-  }
-
-  // M2
-  if (m2_current < m2_target) {
-    m2_current += accelStep;
-    if (m2_current > m2_target) {
-      m2_current = m2_target;
-    }
-  } else if (m2_current > m2_target) {
-    m2_current -= accelStep;
-    if (m2_current < m2_target) {
-      m2_current = m2_target;
-    }
-  }
+  // 現在の出力値(`current`)を目標値(`target`)に近づけるように台形加速を行う。
+  // `target`と`current`の差が`accelStep`より大きい => current = current +/- accelStep
+  // `target`と`current`の差が`accelStep`より小さい => current = target
+  //
+  // constrain(x, a, b) ... xを[a, b]の範囲に収める (constrain(-23, 0, 100) = 0)
+  // abs(x)             ... 絶対値 (abs(-10) = 10)
+  int m1_step = constrain(m1_target - m1_current, -accelStep, accelStep); // Motor 1
+  int m2_step = constrain(m2_target - m2_current, -accelStep, accelStep); // Motor 2
+  m1_current += m1_step;
+  m2_current += m2_step;
 
   int m1_pwm = constrain(abs(m1_current), 0, 255);
   int m2_pwm = constrain(abs(m2_current), 0, 255);
@@ -98,52 +118,8 @@ void updateMotor() {
   }
 }
 
-// ===== 動作関数 =====
-void stopAll() {
-  m1_target = 0;
-  m2_target = 0;
-  Serial.println("Stop");
-}
-
-void forward() {
-  m1_target = maxSpeed;
-  m2_target = maxSpeed;
-  Serial.println("Forward");
-}
-
-void backward() {
-  m1_target = -maxSpeed;
-  m2_target = -maxSpeed;
-  Serial.println("Backward");
-}
-
-void rightTurn() {
-  m1_target = maxSpeed;
-  m2_target = turnSpeed;
-  Serial.println("Right Turn");
-}
-
-void leftTurn() {
-  m1_target = turnSpeed;
-  m2_target = maxSpeed;
-  Serial.println("Left Turn");
-}
-
-void spinRight() {
-  m1_target = maxSpeed;
-  m2_target = -maxSpeed;
-  Serial.println("Spin Right");
-}
-
-void spinLeft() {
-  m1_target = -maxSpeed;
-  m2_target = maxSpeed;
-  Serial.println("Spin Left");
-}
-
 // ===== Web UI =====
 void handleRoot() {
-
   digitalWrite(LED_Wifi, HIGH);
   String html = "<!DOCTYPE html><html><head>";
   html += "<meta charset='UTF-8'>";
@@ -167,42 +143,61 @@ void handleRoot() {
   digitalWrite(LED_Wifi, LOW);
 }
 
-void setupRoutes() {
+void onStop() {
+  order = ORDER_STOP;
+  Serial.println("Stop");
+  handleRoot();
+}
 
+void onForward() {
+  order = ORDER_MOVE_FORWARD;
+  Serial.println("Forward");
+  handleRoot();
+}
+
+void onBackward() {
+  order = ORDER_MOVE_BACKWARD;
+  Serial.println("Backward");
+  handleRoot();
+}
+
+void onLeft() {
+  order = ORDER_MOVE_TURN_L;
+  Serial.println("Left Turn");
+  handleRoot();
+}
+
+void onRight() {
+  order = ORDER_MOVE_TURN_R;
+  Serial.println("Right Turn");
+  handleRoot();
+}
+
+void onSpinL() {
+  order = ORDER_MOVE_SPIN_L;
+  Serial.println("Spin Left");
+  handleRoot();
+}
+
+void onSpinR() {
+  order = ORDER_MOVE_SPIN_R;
+  Serial.println("Spin Right");
+  handleRoot();
+}
+
+void setupRoutes() {
   server.on("/", handleRoot);
 
-  server.on("/forward", []() {
-    forward();
-    handleRoot();
-  });
-  server.on("/back", []() {
-    backward();
-    handleRoot();
-  });
-  server.on("/left", []() {
-    leftTurn();
-    handleRoot();
-  });
-  server.on("/right", []() {
-    rightTurn();
-    handleRoot();
-  });
-  server.on("/spinL", []() {
-    spinLeft();
-    handleRoot();
-  });
-  server.on("/spinR", []() {
-    spinRight();
-    handleRoot();
-  });
-  server.on("/stop", []() {
-    stopAll();
-    handleRoot();
-  });
+  server.on("/forward", onForward);
+  server.on("/back", onBackward);
+  server.on("/left", onLeft);
+  server.on("/right", onRight);
+  server.on("/spinL", onSpinL);
+  server.on("/spinR", onSpinR);
+  server.on("/stop", onStop);
 }
 
 void setup() {
-
   Serial.begin(9600);
 
   pinMode(V_ESP, INPUT);
@@ -229,5 +224,9 @@ void setup() {
 
 void loop() {
   server.handleClient();
-  updateMotor();
+
+  if (millis() - lastUpdate >= accelInterval) {
+    updateMotor();
+    lastUpdate = millis();
+  }
 }
